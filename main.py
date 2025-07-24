@@ -4,7 +4,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.api import api_router
 from app.core.config import settings
 from app.core.database import engine
-from app.models import user, lesson, job  # Import all models
 from app.models.user import Base
 
 # Create tables
