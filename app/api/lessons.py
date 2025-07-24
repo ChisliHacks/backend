@@ -18,8 +18,9 @@ def create_lesson(
     # Check if lesson with same title already exists
     existing_lesson = lesson_crud.get_lesson_by_title(db, lesson.title)
     if existing_lesson:
-        raise HTTPException(status_code=400, detail="Lesson with this title already exists")
-    
+        raise HTTPException(
+            status_code=400, detail="Lesson with this title already exists")
+
     return lesson_crud.create_lesson(db=db, lesson=lesson)
 
 
@@ -35,8 +36,8 @@ def read_lessons(
 ):
     """Get lessons with optional filtering"""
     lessons = lesson_crud.get_lessons(
-        db=db, 
-        skip=skip, 
+        db=db,
+        skip=skip,
         limit=limit,
         category=category,
         difficulty_level=difficulty_level,
@@ -65,7 +66,8 @@ def search_lessons(
     db: Session = Depends(get_db)
 ):
     """Search lessons by title or description"""
-    lessons = lesson_crud.search_lessons(db=db, search_term=q, skip=skip, limit=limit)
+    lessons = lesson_crud.search_lessons(
+        db=db, search_term=q, skip=skip, limit=limit)
     return lessons
 
 
@@ -77,7 +79,8 @@ def read_lessons_by_category(
     db: Session = Depends(get_db)
 ):
     """Get lessons by category"""
-    lessons = lesson_crud.get_lessons_by_category(db=db, category=category, skip=skip, limit=limit)
+    lessons = lesson_crud.get_lessons_by_category(
+        db=db, category=category, skip=skip, limit=limit)
     return lessons
 
 
@@ -89,7 +92,8 @@ def read_lessons_by_instructor(
     db: Session = Depends(get_db)
 ):
     """Get lessons by instructor"""
-    lessons = lesson_crud.get_lessons_by_instructor(db=db, instructor_id=instructor_id, skip=skip, limit=limit)
+    lessons = lesson_crud.get_lessons_by_instructor(
+        db=db, instructor_id=instructor_id, skip=skip, limit=limit)
     return lessons
 
 
@@ -100,7 +104,8 @@ def count_lessons(
     db: Session = Depends(get_db)
 ):
     """Count total lessons with optional filtering"""
-    count = lesson_crud.count_lessons(db=db, category=category, is_published=is_published)
+    count = lesson_crud.count_lessons(
+        db=db, category=category, is_published=is_published)
     return {"count": count}
 
 
@@ -120,7 +125,8 @@ def update_lesson(
     db: Session = Depends(get_db)
 ):
     """Update a lesson"""
-    lesson = lesson_crud.update_lesson(db=db, lesson_id=lesson_id, lesson_update=lesson_update)
+    lesson = lesson_crud.update_lesson(
+        db=db, lesson_id=lesson_id, lesson_update=lesson_update)
     if lesson is None:
         raise HTTPException(status_code=404, detail="Lesson not found")
     return lesson

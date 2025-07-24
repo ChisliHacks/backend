@@ -15,8 +15,8 @@ def get_lesson_by_title(db: Session, title: str) -> Optional[Lesson]:
 
 
 def get_lessons(
-    db: Session, 
-    skip: int = 0, 
+    db: Session,
+    skip: int = 0,
     limit: int = 100,
     category: Optional[str] = None,
     difficulty_level: Optional[str] = None,
@@ -25,19 +25,19 @@ def get_lessons(
 ) -> List[Lesson]:
     """Get multiple lessons with optional filtering"""
     query = db.query(Lesson)
-    
+
     if category:
         query = query.filter(Lesson.category == category)
-    
+
     if difficulty_level:
         query = query.filter(Lesson.difficulty_level == difficulty_level)
-    
+
     if is_published is not None:
         query = query.filter(Lesson.is_published == is_published)
-    
+
     if instructor_id:
         query = query.filter(Lesson.instructor_id == instructor_id)
-    
+
     return query.offset(skip).limit(limit).all()
 
 
@@ -61,7 +61,6 @@ def create_lesson(db: Session, lesson: LessonCreate) -> Lesson:
     db_lesson = Lesson(
         title=lesson.title,
         description=lesson.description,
-        content=lesson.content,
         category=lesson.category,
         filename=lesson.filename,
         duration_minutes=lesson.duration_minutes,
@@ -119,7 +118,7 @@ def unpublish_lesson(db: Session, lesson_id: int) -> Optional[Lesson]:
 def search_lessons(db: Session, search_term: str, skip: int = 0, limit: int = 100) -> List[Lesson]:
     """Search lessons by title or description"""
     return db.query(Lesson).filter(
-        Lesson.title.contains(search_term) | 
+        Lesson.title.contains(search_term) |
         Lesson.description.contains(search_term)
     ).offset(skip).limit(limit).all()
 
@@ -127,11 +126,11 @@ def search_lessons(db: Session, search_term: str, skip: int = 0, limit: int = 10
 def count_lessons(db: Session, category: Optional[str] = None, is_published: Optional[bool] = None) -> int:
     """Count total lessons with optional filtering"""
     query = db.query(Lesson)
-    
+
     if category:
         query = query.filter(Lesson.category == category)
-    
+
     if is_published is not None:
         query = query.filter(Lesson.is_published == is_published)
-    
+
     return query.count()
