@@ -61,6 +61,7 @@ def create_lesson(db: Session, lesson: LessonCreate) -> Lesson:
     db_lesson = Lesson(
         title=lesson.title,
         description=lesson.description,
+        content="",  # Default empty content for backward compatibility
         category=lesson.category,
         filename=lesson.filename,
         duration_minutes=lesson.duration_minutes,

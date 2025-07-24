@@ -43,6 +43,7 @@ class LessonListResponse(BaseModel):
     title: str
     description: Optional[str] = None
     category: str
+    filename: Optional[str] = None
     duration_minutes: Optional[int] = None
     difficulty_level: str
     is_published: bool
