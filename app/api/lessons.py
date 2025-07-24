@@ -65,7 +65,7 @@ def search_lessons(
     limit: int = Query(100, ge=1, le=1000),
     db: Session = Depends(get_db)
 ):
-    """Search lessons by title or description"""
+    """Search lessons by title, description, or summary"""
     lessons = lesson_crud.search_lessons(
         db=db, search_term=q, skip=skip, limit=limit)
     return lessons

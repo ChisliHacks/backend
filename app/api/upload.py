@@ -3,6 +3,8 @@ from fastapi.responses import FileResponse
 from typing import Optional
 import shutil
 from pathlib import Path
+from app.core.file_processor import FileProcessor
+from app.core.ai_service import TunaAIService
 
 router = APIRouter()
 
@@ -25,6 +27,87 @@ def get_unique_filename(directory: str, filename: str) -> str:
         if not new_file_path.exists():
             return new_filename
         counter += 1
+
+
+@router.post("/upload-lesson-material")
+async def upload_and_process_lesson_material(
+    file: UploadFile = File(...),
+    filename: str = Query(...,
+                          description="Desired filename for the uploaded file"),
+    generate_summary: bool = Query(
+        True, description="Whether to generate AI summary from file content")
+):
+    """Upload a lesson material file, extract text, and optionally generate summary"""
+
+    # Validate file type - only PDF allowed
+    if not file.filename or not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(
+            status_code=400,
+            detail="Only PDF files are supported for lesson materials"
+        )
+
+    # Create public directory if it doesn't exist
+    public_dir = Path("public")
+    public_dir.mkdir(exist_ok=True)
+
+    # Ensure filename has .pdf extension
+    if not filename.lower().endswith('.pdf'):
+        filename = f"{filename}.pdf"
+
+    # Get unique filename to avoid conflicts
+    unique_filename = get_unique_filename(str(public_dir), filename)
+    file_path = public_dir / unique_filename
+
+    try:
+        # Save the file
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        # Extract text from the uploaded file
+        extracted_text = None
+        text_extraction_error = None
+
+        try:
+            extracted_text = FileProcessor.extract_text_from_file(
+                str(file_path))
+        except Exception as e:
+            text_extraction_error = str(e)
+
+        # Generate summary if requested and text was extracted successfully
+        summary = None
+        summary_error = None
+
+        if generate_summary and extracted_text and not extracted_text.startswith("Error") and not extracted_text.startswith("PDF uploaded successfully"):
+            try:
+                ai_service = TunaAIService()
+                summary_response = await ai_service.summarize_text(extracted_text, summary_type="brief")
+                summary = summary_response.get("summary")
+            except Exception as e:
+                summary_error = str(e)
+
+        return {
+            "message": "File uploaded and processed successfully",
+            "filename": unique_filename,
+            "original_filename": file.filename,
+            "file_size": file_path.stat().st_size,
+            "text_extracted": extracted_text is not None and not extracted_text.startswith("Error"),
+            "text_length": len(extracted_text) if extracted_text else 0,
+            "summary": summary,
+            "text_extraction_error": text_extraction_error,
+            "summary_error": summary_error,
+            "extracted_text_preview": extracted_text[:500] if extracted_text and len(extracted_text) > 500 else extracted_text
+        }
+
+    except Exception as e:
+        # Clean up file if something went wrong
+        if file_path.exists():
+            file_path.unlink()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing lesson material: {str(e)}"
+        )
+    finally:
+        file.file.close()
 
 
 @router.post("/upload-file")

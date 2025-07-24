@@ -10,7 +10,9 @@ class Lesson(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False, index=True)
     description = Column(Text, nullable=True)
-    content = Column(Text, nullable=True)  # Temporary field for backward compatibility
+    summary = Column(Text, nullable=True)
+    # Temporary field for backward compatibility
+    content = Column(Text, nullable=True)
     category = Column(String, index=True, nullable=False)
     filename = Column(String, nullable=True)
     duration_minutes = Column(Integer, nullable=True)

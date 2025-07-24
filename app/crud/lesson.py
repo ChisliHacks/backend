@@ -61,6 +61,7 @@ def create_lesson(db: Session, lesson: LessonCreate) -> Lesson:
     db_lesson = Lesson(
         title=lesson.title,
         description=lesson.description,
+        summary=lesson.summary,
         content="",  # Default empty content for backward compatibility
         category=lesson.category,
         filename=lesson.filename,
@@ -117,10 +118,11 @@ def unpublish_lesson(db: Session, lesson_id: int) -> Optional[Lesson]:
 
 
 def search_lessons(db: Session, search_term: str, skip: int = 0, limit: int = 100) -> List[Lesson]:
-    """Search lessons by title or description"""
+    """Search lessons by title, description, or summary"""
     return db.query(Lesson).filter(
         Lesson.title.contains(search_term) |
-        Lesson.description.contains(search_term)
+        Lesson.description.contains(search_term) |
+        Lesson.summary.contains(search_term)
     ).offset(skip).limit(limit).all()
 
 

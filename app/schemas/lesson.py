@@ -6,6 +6,7 @@ from typing import Optional
 class LessonBase(BaseModel):
     title: str
     description: Optional[str] = None
+    summary: Optional[str] = None
     category: str
     filename: Optional[str] = None
     duration_minutes: Optional[int] = None
@@ -20,6 +21,7 @@ class LessonCreate(LessonBase):
 class LessonUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
+    summary: Optional[str] = None
     category: Optional[str] = None
     filename: Optional[str] = None
     duration_minutes: Optional[int] = None
@@ -42,6 +44,7 @@ class LessonListResponse(BaseModel):
     id: int
     title: str
     description: Optional[str] = None
+    summary: Optional[str] = None
     category: str
     filename: Optional[str] = None
     duration_minutes: Optional[int] = None

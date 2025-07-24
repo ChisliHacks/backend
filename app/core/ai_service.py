@@ -26,18 +26,19 @@ Always be helpful, concise, and educational in your responses."""
         try:
             # Prepare conversation context
             messages = [{"role": "system", "content": self.system_prompt}]
-            
+
             # Add conversation history
             if conversation_history:
-                for msg in conversation_history[-10:]:  # Keep last 10 messages for context
+                # Keep last 10 messages for context
+                for msg in conversation_history[-10:]:
                     messages.append({
                         "role": msg.role,
                         "content": msg.content
                     })
-            
+
             # Add current user message
             messages.append({"role": "user", "content": message})
-            
+
             # Get response from Ollama
             response = ollama.chat(
                 model=self.model_name,
@@ -48,9 +49,9 @@ Always be helpful, concise, and educational in your responses."""
                     "max_tokens": 1000
                 }
             )
-            
+
             return response['message']['content']
-            
+
         except Exception as e:
             logger.error(f"Error in Tuna chat: {str(e)}")
             return "I'm sorry, I'm having trouble processing your request right now. Please try again."
@@ -66,14 +67,14 @@ Always be helpful, concise, and educational in your responses."""
                 "key_points": f"Extract the key points from the following text and list them:\n\n{text}",
                 "brief": f"Provide a very brief summary (2-3 sentences) of the following text:\n\n{text}"
             }
-            
+
             prompt = prompts.get(summary_type, prompts["general"])
-            
+
             messages = [
                 {"role": "system", "content": "You are Tuna, an AI assistant specialized in creating clear, educational summaries."},
                 {"role": "user", "content": prompt}
             ]
-            
+
             response = ollama.chat(
                 model=self.model_name,
                 messages=messages,
@@ -82,15 +83,15 @@ Always be helpful, concise, and educational in your responses."""
                     "max_tokens": 800
                 }
             )
-            
+
             summary = response['message']['content']
-            
+
             return {
                 "summary": summary,
                 "original_length": len(text),
                 "summary_length": len(summary)
             }
-            
+
         except Exception as e:
             logger.error(f"Error in text summarization: {str(e)}")
             return {
@@ -119,7 +120,7 @@ Format your response to be helpful for students reviewing the material."""
                 {"role": "system", "content": "You are Tuna, an educational AI assistant. Create summaries that help students learn and review effectively."},
                 {"role": "user", "content": prompt}
             ]
-            
+
             response = ollama.chat(
                 model=self.model_name,
                 messages=messages,
@@ -128,9 +129,9 @@ Format your response to be helpful for students reviewing the material."""
                     "max_tokens": 1200
                 }
             )
-            
+
             summary_content = response['message']['content']
-            
+
             # Try to extract key points (basic parsing)
             key_points = []
             lines = summary_content.split('\n')
@@ -140,12 +141,12 @@ Format your response to be helpful for students reviewing the material."""
                     key_points.append(line[2:])
                 elif any(indicator in line.lower() for indicator in ['key point', 'important', 'remember']):
                     key_points.append(line)
-            
+
             return {
                 "summary": summary_content,
                 "key_points": key_points[:10]  # Limit to 10 key points
             }
-            
+
         except Exception as e:
             logger.error(f"Error in lesson summarization: {str(e)}")
             return {
