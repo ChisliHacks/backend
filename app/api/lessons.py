@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from app.core.dependencies import get_db
+from app.core.dependencies import get_db, get_current_user
 from app.crud import lesson as lesson_crud
 from app.schemas.lesson import LessonCreate, LessonUpdate, LessonResponse, LessonListResponse
 
@@ -30,8 +30,6 @@ def read_lessons(
     limit: int = Query(100, ge=1, le=1000),
     category: Optional[str] = Query(None),
     difficulty_level: Optional[str] = Query(None),
-    is_published: Optional[bool] = Query(None),
-    instructor_id: Optional[int] = Query(None),
     db: Session = Depends(get_db)
 ):
     """Get lessons with optional filtering"""
@@ -40,9 +38,7 @@ def read_lessons(
         skip=skip,
         limit=limit,
         category=category,
-        difficulty_level=difficulty_level,
-        is_published=is_published,
-        instructor_id=instructor_id
+        difficulty_level=difficulty_level
     )
     return lessons
 
@@ -84,28 +80,14 @@ def read_lessons_by_category(
     return lessons
 
 
-@router.get("/instructor/{instructor_id}", response_model=List[LessonListResponse])
-def read_lessons_by_instructor(
-    instructor_id: int,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
-    db: Session = Depends(get_db)
-):
-    """Get lessons by instructor"""
-    lessons = lesson_crud.get_lessons_by_instructor(
-        db=db, instructor_id=instructor_id, skip=skip, limit=limit)
-    return lessons
-
-
 @router.get("/count")
 def count_lessons(
     category: Optional[str] = Query(None),
-    is_published: Optional[bool] = Query(None),
     db: Session = Depends(get_db)
 ):
     """Count total lessons with optional filtering"""
     count = lesson_crud.count_lessons(
-        db=db, category=category, is_published=is_published)
+        db=db, category=category)
     return {"count": count}
 
 
@@ -157,3 +139,17 @@ def delete_lesson(lesson_id: int, db: Session = Depends(get_db)):
     if lesson is None:
         raise HTTPException(status_code=404, detail="Lesson not found")
     return {"message": "Lesson deleted successfully"}
+
+
+@router.post("/{lesson_id}/complete")
+def complete_lesson(
+    lesson_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """Mark a lesson as completed for the current user"""
+    result = lesson_crud.complete_lesson_for_user(
+        db=db, user_id=current_user.id, lesson_id=lesson_id)
+    if not result["success"]:
+        raise HTTPException(status_code=404, detail=result["message"])
+    return result

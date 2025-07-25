@@ -19,19 +19,16 @@ class Lesson(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False, index=True)
-    description = Column(Text, nullable=True)
-    summary = Column(Text, nullable=True)
+    description = Column(Text, nullable=False, default="")
+    summary = Column(Text, nullable=False, default="")
     # Temporary field for backward compatibility
-    content = Column(Text, nullable=True)
+    content = Column(Text, nullable=False, default="")
     category = Column(String, index=True, nullable=False)
-    filename = Column(String, nullable=True)
-    duration_minutes = Column(Integer, nullable=True)
+    filename = Column(String, nullable=False, default="")
+    duration_minutes = Column(Integer, nullable=False, default=0)
     # beginner, intermediate, advanced
-    difficulty_level = Column(String, default="beginner")
-    is_published = Column(Boolean, default=False)
-
-    # If you want to associate lessons with users (instructors)
-    instructor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    difficulty_level = Column(String, default="beginner", nullable=False)
+    lesson_score = Column(Integer, nullable=False, default=0)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

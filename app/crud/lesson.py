@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.models.lesson import Lesson
 from app.models.related_job import RelatedJob
+from app.models.user import User
 from app.schemas.lesson import LessonCreate, LessonUpdate
 from app.crud.related_job import find_or_create_related_job
 
@@ -33,9 +34,7 @@ def get_lessons(
     skip: int = 0,
     limit: int = 100,
     category: Optional[str] = None,
-    difficulty_level: Optional[str] = None,
-    is_published: Optional[bool] = None,
-    instructor_id: Optional[int] = None
+    difficulty_level: Optional[str] = None
 ) -> List[Lesson]:
     """Get multiple lessons with optional filtering"""
     query = db.query(Lesson)
@@ -44,23 +43,24 @@ def get_lessons(
         query = query.filter(Lesson.category.ilike(f"%{category}%"))
     if difficulty_level:
         query = query.filter(Lesson.difficulty_level == difficulty_level)
-    if is_published is not None:
-        query = query.filter(Lesson.is_published == is_published)
-    if instructor_id:
-        query = query.filter(Lesson.instructor_id == instructor_id)
 
     return query.offset(skip).limit(limit).all()
 
 
 def get_published_lessons(db: Session, skip: int = 0, limit: int = 100) -> List[Lesson]:
-    """Get only published lessons"""
-    return db.query(Lesson).filter(Lesson.is_published == True).offset(skip).limit(limit).all()
+    """Get all lessons (formerly published lessons, now all lessons since is_published is removed)"""
+    return db.query(Lesson).offset(skip).limit(limit).all()
 
 
 def create_lesson(db: Session, lesson: LessonCreate) -> Lesson:
     """Create a new lesson"""
     lesson_data = lesson.dict(
         exclude={'related_job_ids', 'related_job_positions'})
+
+    # Validate lesson_score if provided
+    if lesson_data.get('lesson_score') is not None and lesson_data['lesson_score'] < 0:
+        raise ValueError("Lesson score cannot be negative")
+
     db_lesson = Lesson(**lesson_data)
 
     db.add(db_lesson)
@@ -164,3 +164,48 @@ def get_lessons_by_category(db: Session, category: str, skip: int = 0, limit: in
 def get_lessons_by_difficulty(db: Session, difficulty_level: str, skip: int = 0, limit: int = 100) -> List[Lesson]:
     """Get lessons by difficulty level"""
     return db.query(Lesson).filter(Lesson.difficulty_level == difficulty_level).offset(skip).limit(limit).all()
+
+
+def count_lessons(db: Session, category: Optional[str] = None) -> int:
+    """Count total lessons with optional filtering"""
+    query = db.query(Lesson)
+
+    if category:
+        query = query.filter(Lesson.category.ilike(f"%{category}%"))
+
+    return query.count()
+
+
+def complete_lesson_for_user(db: Session, user_id: int, lesson_id: int) -> dict:
+    """
+    Mark a lesson as completed for a user and update their statistics
+    Returns completion details
+    """
+    # Get the lesson
+    lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
+    if not lesson:
+        return {"success": False, "message": "Lesson not found"}
+
+    # Get the user
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return {"success": False, "message": "User not found"}
+
+    # Award points based on lesson score (default to 10 if no score set)
+    lesson_score = lesson.lesson_score if lesson.lesson_score is not None else 10
+
+    # Update user statistics
+    user.lessons_completed += 1
+    user.total_lesson_score += lesson_score
+
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "success": True,
+        "lesson_title": lesson.title,
+        "points_earned": lesson_score,
+        "total_lessons_completed": user.lessons_completed,
+        "total_score": user.total_lesson_score,
+        "message": f"Successfully completed '{lesson.title}' and earned {lesson_score} points!"
+    }

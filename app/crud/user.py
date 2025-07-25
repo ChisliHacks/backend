@@ -26,7 +26,9 @@ def create_user(db: Session, user: UserCreate):
     db_user = User(
         email=user.email,
         username=user.username,
-        hashed_password=hashed_password
+        hashed_password=hashed_password,
+        lessons_completed=0,
+        total_lesson_score=0
     )
     db.add(db_user)
     db.commit()
@@ -40,7 +42,9 @@ def register_user(db: Session, user: UserRegister):
     db_user = User(
         email=user.email,
         username=user.username,
-        hashed_password=hashed_password
+        hashed_password=hashed_password,
+        lessons_completed=0,
+        total_lesson_score=0
     )
     db.add(db_user)
     db.commit()
@@ -75,3 +79,45 @@ def delete_user(db: Session, user_id: int):
         db.delete(db_user)
         db.commit()
     return db_user
+
+
+def complete_lesson(db: Session, user_id: int, lesson_score: int = 0):
+    """
+    Mark a lesson as completed for a user and update their statistics
+    """
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if db_user:
+        db_user.lessons_completed += 1
+        db_user.total_lesson_score += lesson_score
+        db.commit()
+        db.refresh(db_user)
+    return db_user
+
+
+def reset_user_progress(db: Session, user_id: int):
+    """
+    Reset a user's lesson progress (lessons_completed and total_lesson_score to 0)
+    """
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if db_user:
+        db_user.lessons_completed = 0
+        db_user.total_lesson_score = 0
+        db.commit()
+        db.refresh(db_user)
+    return db_user
+
+
+def get_user_stats(db: Session, user_id: int):
+    """
+    Get user statistics including lessons completed and total score
+    """
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if db_user:
+        return {
+            "user_id": db_user.id,
+            "username": db_user.username,
+            "lessons_completed": db_user.lessons_completed,
+            "total_lesson_score": db_user.total_lesson_score,
+            "average_score": db_user.total_lesson_score / db_user.lessons_completed if db_user.lessons_completed > 0 else 0
+        }
+    return None

@@ -27,6 +27,8 @@ class UserProfile(BaseModel):
     email: EmailStr
     username: str
     is_active: bool
+    lessons_completed: int
+    total_lesson_score: int
 
     class Config:
         from_attributes = True
