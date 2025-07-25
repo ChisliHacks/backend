@@ -6,7 +6,8 @@ from app.schemas.ai_chat import (
     ChatRequest, ChatResponse,
     SummarizeRequest, SummarizeResponse,
     LessonSummaryRequest, LessonSummaryResponse,
-    JobSuggestionRequest, JobSuggestionResponse
+    JobSuggestionRequest, JobSuggestionResponse,
+    CategorySuggestionRequest, CategorySuggestionResponse
 )
 from app.core.ai_service import tuna_ai
 from app.core.dependencies import get_current_user
@@ -138,6 +139,33 @@ async def suggest_related_jobs(
         logger.error(f"Error in job suggestion endpoint: {str(e)}")
         raise HTTPException(
             status_code=500, detail="Failed to suggest related jobs")
+
+
+@router.post("/suggest-category", response_model=CategorySuggestionResponse)
+async def suggest_category(
+    request: CategorySuggestionRequest,
+    current_user=Depends(get_current_user)
+):
+    """
+    Suggest a category for a lesson based on its content
+    """
+    try:
+        # Get AI category suggestion
+        suggested_category = await tuna_ai.suggest_category(
+            lesson_title=request.lesson_title,
+            lesson_description=request.lesson_description,
+            lesson_content=request.lesson_content
+        )
+
+        return CategorySuggestionResponse(
+            suggested_category=suggested_category,
+            reasoning="Category suggested based on lesson content analysis"
+        )
+
+    except Exception as e:
+        logger.error(f"Error in category suggestion endpoint: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail="Failed to suggest category")
 
 
 @router.get("/status")

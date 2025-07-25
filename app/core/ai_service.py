@@ -1,6 +1,5 @@
-import ollama
+import ollama  # type: ignore
 import logging
-import re
 from typing import List, Dict, Any
 from app.schemas.ai_chat import ChatMessage
 
@@ -235,6 +234,61 @@ UX Designer"""
         except Exception as e:
             logger.error(f"Error in job suggestion: {str(e)}")
             return []
+
+    async def suggest_category(self, lesson_title: str, lesson_description: str = "", lesson_content: str = "") -> str:
+        """
+        Suggest a category for a lesson based on its title, description, and content
+        Returns a single category string
+        """
+        try:
+            prompt = f"""Lesson Details:
+Title: {lesson_title}
+Description: {lesson_description}
+Content Preview: {lesson_content[:500] if lesson_content else "Not available"}
+
+Based on this lesson information, suggest the most appropriate category from common educational categories. Consider:
+- Subject matter and topics covered
+- Target audience and skill level
+- Learning objectives
+- Industry alignment
+
+Popular categories include:
+Programming, Web Development, Data Science, Mathematics, Science, Business, Marketing, Design, Language, Art, Music, History, Engineering, Health, Finance, Psychology, etc.
+
+Return ONLY the category name, nothing else."""
+
+            messages = [
+                {"role": "system", "content": "You are Tuna, an educational AI that helps categorize learning content. Analyze lesson information and suggest the most appropriate single category. Return ONLY the category name."},
+                {"role": "user", "content": prompt}
+            ]
+
+            response = ollama.chat(
+                model=self.model_name,
+                messages=messages,
+                options={
+                    "temperature": 0.3,
+                    "max_tokens": 50
+                }
+            )
+
+            # Clean up the response
+            category = response['message']['content'].strip()
+
+            # Remove any extra text and get just the category
+            import re
+            category = re.sub(r'^[^\w]*', '', category).strip()
+            category = category.split('\n')[0].strip()
+            category = category.split('.')[0].strip()
+
+            # Capitalize properly
+            if category:
+                category = category.title()
+
+            return category or "General"
+
+        except Exception as e:
+            logger.error(f"Error in category suggestion: {str(e)}")
+            return "General"
 
 
 # Global instance

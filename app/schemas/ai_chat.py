@@ -51,3 +51,14 @@ class JobSuggestionRequest(BaseModel):
 class JobSuggestionResponse(BaseModel):
     suggested_job_positions: List[str]
     reasoning: str = ""
+
+
+class CategorySuggestionRequest(BaseModel):
+    lesson_title: str
+    lesson_description: str = ""
+    lesson_content: str = ""
+
+
+class CategorySuggestionResponse(BaseModel):
+    suggested_category: str
+    reasoning: str = ""
