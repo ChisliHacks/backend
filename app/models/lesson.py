@@ -1,7 +1,17 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, Table
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+
+
+# Association table for many-to-many relationship between lessons and related jobs
+lesson_related_job_association = Table(
+    'lesson_related_job_relations',
+    Base.metadata,
+    Column('lesson_id', Integer, ForeignKey('lessons.id'), primary_key=True),
+    Column('related_job_id', Integer, ForeignKey(
+        'related_jobs.id'), primary_key=True)
+)
 
 
 class Lesson(Base):
@@ -28,3 +38,10 @@ class Lesson(Base):
 
     # Relationship to user (instructor)
     # instructor = relationship("User", back_populates="lessons")
+
+    # Many-to-many relationship with related jobs
+    related_jobs = relationship(
+        "RelatedJob",
+        secondary=lesson_related_job_association,
+        back_populates="related_lessons"
+    )

@@ -40,3 +40,14 @@ class LessonSummaryResponse(BaseModel):
     lesson_title: str
     summary: str
     key_points: List[str] = []
+
+
+class JobSuggestionRequest(BaseModel):
+    lesson_title: str
+    lesson_description: str
+    lesson_category: str
+
+
+class JobSuggestionResponse(BaseModel):
+    suggested_job_positions: List[str]
+    reasoning: str = ""

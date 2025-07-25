@@ -1,5 +1,6 @@
 import ollama
 import logging
+import re
 from typing import List, Dict, Any
 from app.schemas.ai_chat import ChatMessage
 
@@ -17,7 +18,8 @@ You are particularly good at:
 - Explaining complex concepts in simple terms
 - Helping with study and learning strategies
 
-Always be helpful, concise, and educational in your responses."""
+Always be helpful, concise, and educational in your responses.
+CRITICAL INSTRUCTION: Never use introductory phrases. Never start with phrases like "Here is", "This is", "Here's a summary", "In 2-3 sentences", or any similar prefixes. Always start your response directly with the main content. No preambles, no introductions, just the direct answer."""
 
     async def chat(self, message: str, conversation_history: List[ChatMessage] = None) -> str:
         """
@@ -46,7 +48,7 @@ Always be helpful, concise, and educational in your responses."""
                 options={
                     "temperature": 0.7,
                     "top_p": 0.9,
-                    "max_tokens": 1000
+                    "max_tokens": 3000  # Increased from 1000 to allow longer chat responses
                 }
             )
 
@@ -63,15 +65,15 @@ Always be helpful, concise, and educational in your responses."""
         try:
             # Different prompts for different summary types
             prompts = {
-                "general": f"Please provide a clear and concise summary of the following text:\n\n{text}",
-                "key_points": f"Extract the key points from the following text and list them:\n\n{text}",
-                "brief": f"Provide a very brief summary (2-3 sentences) of the following text:\n\n{text}"
+                "general": f"Summarize this text:\n\n{text}",
+                "key_points": f"Key points from this text:\n\n{text}",
+                "brief": f"Brief summary (2-3 sentences):\n\n{text}"
             }
 
             prompt = prompts.get(summary_type, prompts["general"])
 
             messages = [
-                {"role": "system", "content": "You are Tuna, an AI assistant specialized in creating clear, educational summaries."},
+                {"role": "system", "content": "You are Tuna, an AI assistant specialized in creating clear, educational summaries. NEVER use introductory phrases like 'Here is a summary', 'This is', 'In 2-3 sentences', etc. Start your response immediately with the actual summary content. No preambles."},
                 {"role": "user", "content": prompt}
             ]
 
@@ -80,7 +82,7 @@ Always be helpful, concise, and educational in your responses."""
                 messages=messages,
                 options={
                     "temperature": 0.3,  # Lower temperature for more focused summaries
-                    "max_tokens": 800
+                    "max_tokens": 4000  # Increased from 800 to allow longer summaries
                 }
             )
 
@@ -105,19 +107,14 @@ Always be helpful, concise, and educational in your responses."""
         Summarize lesson content with educational focus
         """
         try:
-            prompt = f"""Please analyze and summarize this lesson titled "{lesson_title}":
+            prompt = f"""Lesson: "{lesson_title}"
 
 {lesson_content}
 
-Provide:
-1. A comprehensive summary
-2. Key learning points
-3. Important concepts to remember
-
-Format your response to be helpful for students reviewing the material."""
+Summary with key learning points and important concepts for student review:"""
 
             messages = [
-                {"role": "system", "content": "You are Tuna, an educational AI assistant. Create summaries that help students learn and review effectively."},
+                {"role": "system", "content": "You are Tuna, an educational AI assistant. Create summaries that help students learn and review effectively. NEVER use introductory phrases like 'Here is a summary', 'This is', 'The following is', etc. Start your response immediately with the actual summary content. No preambles."},
                 {"role": "user", "content": prompt}
             ]
 
@@ -126,7 +123,7 @@ Format your response to be helpful for students reviewing the material."""
                 messages=messages,
                 options={
                     "temperature": 0.4,
-                    "max_tokens": 1200
+                    "max_tokens": 5000  # Increased from 1200 to allow much longer lesson summaries
                 }
             )
 
@@ -178,6 +175,66 @@ Format your response to be helpful for students reviewing the material."""
         except Exception as e:
             logger.error(f"Error pulling model: {str(e)}")
             return False
+
+    async def suggest_related_jobs(self, lesson_title: str, lesson_description: str, lesson_category: str) -> List[str]:
+        """
+        Suggest related job positions for a lesson based on its content
+        Returns a list of job position strings that will be matched/created in the database
+        """
+        try:
+            prompt = f"""Lesson Details:
+Title: {lesson_title}
+Category: {lesson_category}
+Description: {lesson_description}
+
+Based on this lesson content, suggest relevant job positions that someone who completes this lesson might pursue. Consider:
+- Skills taught in the lesson
+- Career paths this lesson supports
+- Industry alignment
+- Entry-level to advanced positions
+- Different job titles in the field
+
+Return 3-7 job position titles, one per line. Be specific and use common industry job titles.
+Example format:
+Software Developer
+Data Analyst
+Product Manager
+UX Designer"""
+
+            messages = [
+                {"role": "system", "content": "You are Tuna, an AI career advisor that helps match educational content with relevant job positions. Analyze lesson content and suggest specific job titles that learners could pursue. Return ONLY the job position titles, one per line, no numbers or bullets."},
+                {"role": "user", "content": prompt}
+            ]
+
+            response = ollama.chat(
+                model=self.model_name,
+                messages=messages,
+                options={
+                    "temperature": 0.4,
+                    "max_tokens": 200
+                }
+            )
+
+            # Parse the response to extract job positions
+            response_text = response['message']['content'].strip()
+            job_positions = []
+
+            # Split by lines and clean up
+            lines = response_text.split('\n')
+            for line in lines:
+                line = line.strip()
+                # Remove bullets, numbers, or other prefixes
+                import re
+                line = re.sub(r'^[\d\.\-\*\•\s]+', '', line).strip()
+
+                if line and len(line) > 2:  # Valid job title
+                    job_positions.append(line)
+
+            return job_positions[:7]  # Limit to 7 suggestions
+
+        except Exception as e:
+            logger.error(f"Error in job suggestion: {str(e)}")
+            return []
 
 
 # Global instance
