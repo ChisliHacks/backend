@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.auth import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from app.core.dependencies import get_current_active_user
-from app.crud.user import register_user, authenticate_user, get_user_by_email, get_user_by_username
+from app.crud.user import register_user, authenticate_user, get_user_by_email, get_user_by_username, get_top_performers, get_top_performers_by_related_jobs, get_user_best_job_performance
 from app.schemas.auth import UserRegister, UserLogin, Token, UserProfile
 from app.models.user import User
 
@@ -85,3 +85,47 @@ def update_current_user_profile(
         db.refresh(current_user)
 
     return current_user
+
+
+@router.get("/leaderboard")
+def get_leaderboard(
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    """Get top performers leaderboard"""
+    if limit > 50:  # Limit maximum results
+        limit = 50
+
+    return {
+        "top_performers": get_top_performers(db, limit),
+        "total_count": limit
+    }
+
+
+@router.get("/leaderboard/by-jobs")
+def get_leaderboard_by_jobs(
+    limit_per_job: int = 5,
+    db: Session = Depends(get_db)
+):
+    """Get top performers grouped by related job positions"""
+    if limit_per_job > 20:  # Limit maximum results per job
+        limit_per_job = 20
+
+    return get_top_performers_by_related_jobs(db, limit_per_job)
+
+
+@router.get("/me/best-job")
+def get_current_user_best_job(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get the current user's best performing job category"""
+    result = get_user_best_job_performance(db, current_user.id)
+
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No job performance data found. Complete some lessons first!"
+        )
+
+    return result
