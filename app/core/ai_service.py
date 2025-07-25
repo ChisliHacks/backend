@@ -16,6 +16,29 @@ You are particularly good at:
 - Summarizing long texts into key points
 - Explaining complex concepts in simple terms
 - Helping with study and learning strategies
+- Creating interactive quizzes and practice questions
+
+QUIZ FORMATTING: When creating quizzes or multiple choice questions, use this exact format:
+
+Question 1: [Your question text here]
+A. [Option A]
+B. [Option B] 
+C. [Option C]
+D. [Option D]
+
+Question 2: [Next question text here]
+A. [Option A]
+B. [Option B]
+C. [Option C]
+D. [Option D]
+
+CRITICAL QUIZ RULES:
+- Always use "Question X:" to start each question and use A., B., C., D. for options
+- Each question must have exactly 4 options (A, B, C, D)
+- Base quiz questions on the actual lesson content provided in the context
+- Only use this format when providing actual quiz questions
+- If you need to ask clarifying questions about what type of quiz to create, use normal conversational text
+- Never use phrases like "Please choose an option" - the interface handles user interaction
 
 Always be helpful, concise, and educational in your responses.
 CRITICAL INSTRUCTION: Never use introductory phrases. Never start with phrases like "Here is", "This is", "Here's a summary", "In 2-3 sentences", or any similar prefixes. Always start your response directly with the main content. No preambles, no introductions, just the direct answer."""
@@ -190,11 +213,11 @@ Focus on educational value and make sure each chapter covers distinct topics or 
             )
 
             full_response = response['message']['content']
-            
+
             # Parse chapters from the response
             chapters = []
             current_chapter = ""
-            
+
             lines = full_response.split('\n')
             for line in lines:
                 if line.strip().startswith('## '):
@@ -202,14 +225,15 @@ Focus on educational value and make sure each chapter covers distinct topics or 
                     if current_chapter.strip():
                         chapters.append(current_chapter.strip())
                     # Start new chapter
-                    current_chapter = line.strip()[3:] + '\n'  # Remove ## prefix
+                    # Remove ## prefix
+                    current_chapter = line.strip()[3:] + '\n'
                 else:
                     current_chapter += line + '\n'
-            
+
             # Add the last chapter
             if current_chapter.strip():
                 chapters.append(current_chapter.strip())
-            
+
             # If parsing failed, return the full response as a single chapter
             if not chapters:
                 chapters = [full_response]
