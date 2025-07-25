@@ -169,10 +169,20 @@ async def get_lesson_file(filename: str):
     if not file_path.is_file():
         raise HTTPException(status_code=400, detail="Invalid file")
 
+    # Determine media type based on file extension
+    file_extension = file_path.suffix.lower()
+    if file_extension == '.pdf':
+        media_type = 'application/pdf'
+    else:
+        media_type = 'application/octet-stream'
+
     return FileResponse(
         path=str(file_path),
         filename=filename,
-        media_type='application/octet-stream'
+        media_type=media_type,
+        headers={
+            "Content-Disposition": "inline; filename=" + filename if file_extension == '.pdf' else f"attachment; filename={filename}"
+        }
     )
 
 

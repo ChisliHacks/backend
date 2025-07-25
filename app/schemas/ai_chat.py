@@ -42,6 +42,18 @@ class LessonSummaryResponse(BaseModel):
     key_points: List[str] = []
 
 
+class ChapterizedSummaryRequest(BaseModel):
+    lesson_id: int
+
+
+class ChapterizedSummaryResponse(BaseModel):
+    lesson_id: int
+    lesson_title: str
+    summary: str
+    chapters: List[str] = []
+    chapter_count: int = 0
+
+
 class JobSuggestionRequest(BaseModel):
     lesson_title: str
     lesson_description: str

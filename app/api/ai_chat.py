@@ -6,6 +6,7 @@ from app.schemas.ai_chat import (
     ChatRequest, ChatResponse,
     SummarizeRequest, SummarizeResponse,
     LessonSummaryRequest, LessonSummaryResponse,
+    ChapterizedSummaryRequest, ChapterizedSummaryResponse,
     JobSuggestionRequest, JobSuggestionResponse,
     CategorySuggestionRequest, CategorySuggestionResponse
 )
@@ -112,6 +113,54 @@ async def summarize_lesson(
         logger.error(f"Error in lesson summarization endpoint: {str(e)}")
         raise HTTPException(
             status_code=500, detail="Failed to summarize lesson")
+
+
+@router.post("/chapterized-summary", response_model=ChapterizedSummaryResponse)
+async def create_chapterized_summary(
+    request: ChapterizedSummaryRequest,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Create a chapterized summary of a specific lesson using LLM
+    """
+    try:
+        # Get lesson from database
+        lesson = get_lesson(db, request.lesson_id)
+        if not lesson:
+            raise HTTPException(status_code=404, detail="Lesson not found")
+
+        # Prepare lesson content for summarization
+        lesson_content = f"""
+        Title: {lesson.title}
+        Category: {lesson.category}
+        Difficulty: {lesson.difficulty_level}
+        Description: {lesson.description or 'No description available'}
+        Duration: {lesson.duration_minutes or 'Not specified'} minutes
+        
+        [Note: This lesson may have associated files that are not included in this summary]
+        """
+
+        # Get chapterized summary from AI
+        result = await tuna_ai.create_chapterized_summary(
+            lesson_content=lesson_content,
+            lesson_title=lesson.title
+        )
+
+        return ChapterizedSummaryResponse(
+            lesson_id=lesson.id,
+            lesson_title=lesson.title,
+            summary=result["summary"],
+            chapters=result["chapters"],
+            chapter_count=result["chapter_count"]
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in chapterized summary endpoint: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail="Failed to create chapterized summary")
 
 
 @router.post("/suggest-jobs", response_model=JobSuggestionResponse)

@@ -150,6 +150,84 @@ Summary with key learning points and important concepts for student review:"""
                 "key_points": []
             }
 
+    async def create_chapterized_summary(self, lesson_content: str, lesson_title: str) -> Dict[str, Any]:
+        """
+        Create a chapterized summary using LLM to break down content into logical chapters
+        """
+        try:
+            prompt = f"""Analyze this lesson content and create a well-structured summary divided into logical chapters/sections.
+
+Lesson Title: "{lesson_title}"
+
+Content:
+{lesson_content}
+
+Please organize the summary into 3-6 logical chapters/sections. For each chapter:
+1. Give it a clear, descriptive title
+2. Provide 2-4 paragraphs of summary content
+3. Use this exact format:
+
+## Chapter 1: [Title]
+[Content paragraphs]
+
+## Chapter 2: [Title]  
+[Content paragraphs]
+
+Focus on educational value and make sure each chapter covers distinct topics or concepts."""
+
+            messages = [
+                {"role": "system", "content": "You are Tuna, an educational AI assistant. Create well-structured, chapterized summaries that help students learn systematically. NEVER use introductory phrases. Start directly with the first chapter. Use the exact format requested with ## headers."},
+                {"role": "user", "content": prompt}
+            ]
+
+            response = ollama.chat(
+                model=self.model_name,
+                messages=messages,
+                options={
+                    "temperature": 0.3,
+                    "max_tokens": 6000
+                }
+            )
+
+            full_response = response['message']['content']
+            
+            # Parse chapters from the response
+            chapters = []
+            current_chapter = ""
+            
+            lines = full_response.split('\n')
+            for line in lines:
+                if line.strip().startswith('## '):
+                    # Save previous chapter if exists
+                    if current_chapter.strip():
+                        chapters.append(current_chapter.strip())
+                    # Start new chapter
+                    current_chapter = line.strip()[3:] + '\n'  # Remove ## prefix
+                else:
+                    current_chapter += line + '\n'
+            
+            # Add the last chapter
+            if current_chapter.strip():
+                chapters.append(current_chapter.strip())
+            
+            # If parsing failed, return the full response as a single chapter
+            if not chapters:
+                chapters = [full_response]
+
+            return {
+                "summary": full_response,
+                "chapters": chapters,
+                "chapter_count": len(chapters)
+            }
+
+        except Exception as e:
+            logger.error(f"Error in chapterized summarization: {str(e)}")
+            return {
+                "summary": "I'm sorry, I couldn't generate a chapterized summary right now.",
+                "chapters": [],
+                "chapter_count": 0
+            }
+
     def check_model_availability(self) -> bool:
         """
         Check if the specified model is available in Ollama
